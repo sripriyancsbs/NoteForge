@@ -22,7 +22,11 @@ htmlcov/
 vault_pass.txt
 .vault_pass
 
-# Flask / Instance folders
+# Database
+*.db
+*.sqlite
+*.sqlite3
+noteforge_local.db
 instance/
 
 # IDE files
