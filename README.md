@@ -160,11 +160,16 @@ python -m venv .venv
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Run test suite
+# Run unit & integration test suite (Pytest)
 pytest tests/test_notes.py -v
 
 # Run Flake8 linter
 flake8 app tests --max-line-length=120 --exclude=.venv
+
+# Install Playwright and run End-to-End (E2E) test suite
+npm install
+npx playwright install chromium
+npm run test:e2e
 
 # Run the local Flask server
 $env:FLASK_ENV="development"

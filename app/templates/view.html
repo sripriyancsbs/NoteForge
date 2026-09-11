@@ -6,7 +6,7 @@
 <div class="note-view-container" id="note-view-container">
   <!-- Top Navigation & Actions Bar -->
   <div class="view-actions-bar" id="view-actions-bar">
-    <a href="/" class="btn btn-secondary" id="btn-view-back" title="Back to Notes">
+    <a href="/" class="btn btn-secondary" id="btn-view-back" data-testid="view-back-btn" title="Back to Notes">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="19" y1="12" x2="5" y2="12"></line>
         <polyline points="12 19 5 12 12 5"></polyline>
@@ -27,7 +27,7 @@
         </svg>
         <span>Favorite</span>
       </button>
-      <a href="/notes/{{ note.id }}/edit" class="btn btn-secondary" id="btn-view-edit">
+      <a href="/notes/{{ note.id }}/edit" class="btn btn-secondary" id="btn-view-edit" data-testid="view-edit-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -38,6 +38,7 @@
         type="button" 
         class="btn btn-danger" 
         id="btn-view-delete" 
+        data-testid="view-delete-btn"
         onclick="window.promptDeleteNote({{ note.id }}, false)"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -70,7 +71,7 @@
   <!-- Note Header & Metadata -->
   <article class="note-view-article" id="note-view-article">
     <header class="note-view-header" id="note-view-header">
-      <h1 class="note-view-title" id="note-view-title">{{ note.title }}</h1>
+      <h1 class="note-view-title" id="note-view-title" data-testid="view-note-title">{{ note.title }}</h1>
       <div class="note-view-metadata" id="note-view-meta">
         <span>Created {{ note.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
         <span>&bull;</span>
@@ -81,7 +82,7 @@
     </header>
 
     <!-- Rendered Markdown HTML Body via mistune -->
-    <div class="markdown-body" id="rendered-markdown-content">
+    <div class="markdown-body" id="rendered-markdown-content" data-testid="view-markdown-content">
       {{ note.rendered_html | safe }}
     </div>
   </article>

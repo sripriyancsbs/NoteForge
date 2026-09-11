@@ -13,6 +13,9 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+test-results/
+playwright-report/
+node_modules/
 
 # Environment and Secret files
 .env
