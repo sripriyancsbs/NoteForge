@@ -129,7 +129,7 @@ def create_app(config_name: str = None) -> Flask:
         """Clean distraction-free reading view for a single note."""
         try:
             note = db.session.get(Note, note_id)
-            if not note:
+            if not note or note.is_trashed:
                 return render_template(
                     "error.html",
                     error_title="Note Not Found",
@@ -149,7 +149,7 @@ def create_app(config_name: str = None) -> Flask:
         """Focused dual-pane Markdown editor view for editing an existing note."""
         try:
             note = db.session.get(Note, note_id)
-            if not note:
+            if not note or note.is_trashed:
                 return render_template(
                     "error.html",
                     error_title="Note Not Found",
@@ -233,7 +233,7 @@ def create_app(config_name: str = None) -> Flask:
         """Retrieve single note with rendered mistune Markdown HTML."""
         try:
             note = db.session.get(Note, note_id)
-            if not note:
+            if not note or note.is_trashed:
                 return jsonify({"error": f"Note #{note_id} not found"}), 404
             return jsonify(note.to_dict(include_html=True)), 200
         except SQLAlchemyError as err:
