@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ note.title }} — NOTEForge{% endblock %}
+
+{% block content %}
+<div class="note-view-container" id="note-view-container">
+  <!-- Top Navigation & Actions Bar -->
+  <div class="view-actions-bar" id="view-actions-bar">
+    <a href="/" class="btn btn-secondary" id="btn-view-back" title="Back to Notes">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back</span>
+    </a>
+
+    <div style="display:flex; align-items:center; gap:8px;" id="view-cta-group">
+      {% if not note.is_trashed %}
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        id="btn-view-fav" 
+        onclick="window.toggleFavorite({{ note.id }}, event)"
+      >
+        <svg id="fav-icon-{{ note.id }}" class="{% if note.is_favorite %}active-fav{% endif %}" width="14" height="14" viewBox="0 0 24 24" fill="{% if note.is_favorite %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Favorite</span>
+      </button>
+      <a href="/notes/{{ note.id }}/edit" class="btn btn-secondary" id="btn-view-edit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>Edit</span>
+      </a>
+      <button 
+        type="button" 
+        class="btn btn-danger" 
+        id="btn-view-delete" 
+        onclick="window.promptDeleteNote({{ note.id }}, false)"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Delete</span>
+      </button>
+      {% else %}
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        id="btn-view-restore" 
+        onclick="window.restoreNote({{ note.id }}, event)"
+      >
+        Restore
+      </button>
+      <button 
+        type="button" 
+        class="btn btn-danger" 
+        id="btn-view-delete-perm" 
+        onclick="window.promptDeleteNote({{ note.id }}, true)"
+      >
+        Delete Permanently
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Note Header & Metadata -->
+  <article class="note-view-article" id="note-view-article">
+    <header class="note-view-header" id="note-view-header">
+      <h1 class="note-view-title" id="note-view-title">{{ note.title }}</h1>
+      <div class="note-view-metadata" id="note-view-meta">
+        <span>Created {{ note.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+        <span>&bull;</span>
+        <span>Last modified {{ note.updated_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+        <span>&bull;</span>
+        <span>{{ note.to_dict()['reading_time_min'] }} min read ({{ note.to_dict()['word_count'] }} words)</span>
+      </div>
+    </header>
+
+    <!-- Rendered Markdown HTML Body via mistune -->
+    <div class="markdown-body" id="rendered-markdown-content">
+      {{ note.rendered_html | safe }}
+    </div>
+  </article>
+</div>
+{% endblock %}

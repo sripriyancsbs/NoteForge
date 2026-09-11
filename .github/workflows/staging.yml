@@ -1,0 +1,118 @@
+name: Staging Deployment & Automated Rollback
+
+on:
+  push:
+    branches:
+      - staging
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - '**.md'
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  STAGING_PORT: 5001
+
+jobs:
+  update-changelog:
+    name: Auto-Update CHANGELOG.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Staging Branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 20
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Changelog Generator Script
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python scripts/update_changelog.py
+
+      - name: Commit Updated CHANGELOG.md
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          if git commit -m "docs(changelog): auto-update for staging-${{ github.sha }} [skip ci]"; then
+            git push origin staging
+          else
+            echo "No changelog changes to commit."
+          fi
+
+  deploy-staging:
+    name: Deploy to Staging & Smoke Test
+    runs-on: ubuntu-latest
+    needs: update-changelog
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python & Ansible
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Ansible and Deployment Tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core requests cryptography
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write Ansible Vault Password File
+        env:
+          VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          mkdir -p ansible/vault
+          # Use secret or fallback default if local runner
+          echo "${VAULT_PASSWORD:-noteforge_vault_key_2026}" > ansible/vault/vault_pass.txt
+          chmod 600 ansible/vault/vault_pass.txt
+
+      - name: Execute Ansible Staging Deployment
+        env:
+          ANSIBLE_VAULT_PASSWORD_FILE: ansible/vault/vault_pass.txt
+        run: |
+          ansible-playbook -i ansible/inventory/hosts.ini ansible/deploy.yml \
+            --vault-password-file ansible/vault/vault_pass.txt \
+            --extra-vars "env=staging tag=staging-${{ github.sha }} image_repo=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+
+      - name: Run Staging Smoke Tests
+        id: smoke_tests
+        env:
+          TARGET_URL: "http://127.0.0.1:${{ env.STAGING_PORT }}"
+        run: |
+          python scripts/smoke_test.py
+
+      - name: Automatic Rollback on Smoke Test Failure
+        if: failure() && steps.smoke_tests.outcome == 'failure'
+        env:
+          ANSIBLE_VAULT_PASSWORD_FILE: ansible/vault/vault_pass.txt
+        run: |
+          echo "========================================================"
+          echo "ALERT: Smoke tests failed on Staging! Triggering rollback..."
+          echo "========================================================"
+          ansible-playbook -i ansible/inventory/hosts.ini ansible/rollback.yml \
+            --vault-password-file ansible/vault/vault_pass.txt \
+            --extra-vars "env=staging image_repo=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+
+      - name: Secure Cleanup of Vault Passwords
+        if: always()
+        run: |
+          rm -f ansible/vault/vault_pass.txt

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NOTEForge — Production Markdown Workspace{% endblock %}</title>
+  <meta name="description" content="NOTEForge is a high-performance, production-grade Markdown notes workspace backed by PostgreSQL and mistune.">
+  <meta name="keywords" content="notes, markdown, devops, productivity, postgresql, flask">
+  
+  <!-- Favicon / Brand Icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Core Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell" id="app-root">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav" id="top-navigation">
+      <div style="display:flex; align-items:center; gap:20px;">
+        <a href="/" class="brand-section" id="brand-link" title="NOTEForge Home">
+          <div class="brand-logo" id="brand-logo-icon">NF</div>
+          <span class="brand-title">NOTEForge</span>
+          <span class="brand-badge" id="env-badge">PROD-CI/CD</span>
+        </a>
+      </div>
+
+      <!-- Search Notes in Header -->
+      <div class="header-search" id="header-search-container">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="search-input" 
+          placeholder="Search notes in PostgreSQL..." 
+          value="{{ search_query if search_query is defined else '' }}"
+          autocomplete="off"
+        >
+        <span class="kbd-shortcut" id="search-kbd-hint">Ctrl K</span>
+      </div>
+
+      <!-- Right Navigation Actions -->
+      <div class="nav-actions" id="top-nav-actions">
+        <a href="/notes/new" class="btn btn-primary" id="btn-header-new-note" title="Create New Note (Ctrl+N)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Note</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Workspace Content Area -->
+    <div class="workspace-body" id="workspace-main-layout">
+      {% block sidebar %}
+      <!-- Navigation Sidebar -->
+      <aside class="sidebar" id="navigation-sidebar" aria-label="Main Navigation">
+        <span class="sidebar-title">Workspace</span>
+        <ul class="sidebar-nav" id="sidebar-nav-list">
+          <li>
+            <a href="/?category=all" class="sidebar-link {% if category == 'all' or not category %}active{% endif %}" id="nav-link-all">
+              <span class="sidebar-link-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                All Notes
+              </span>
+              <span class="sidebar-badge" id="count-all-badge">{{ counts.all if counts is defined else 0 }}</span>
+            </a>
+          </li>
+          <li>
+            <a href="/?category=recent" class="sidebar-link {% if category == 'recent' %}active{% endif %}" id="nav-link-recent">
+              <span class="sidebar-link-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Recent
+              </span>
+              <span class="sidebar-badge" id="count-recent-badge">{{ counts.recent if counts is defined else 0 }}</span>
+            </a>
+          </li>
+          <li>
+            <a href="/?category=favorites" class="sidebar-link {% if category == 'favorites' %}active{% endif %}" id="nav-link-favorites">
+              <span class="sidebar-link-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                Favorites
+              </span>
+              <span class="sidebar-badge" id="count-favs-badge">{{ counts.favorites if counts is defined else 0 }}</span>
+            </a>
+          </li>
+          <li>
+            <a href="/?category=trash" class="sidebar-link {% if category == 'trash' %}active{% endif %}" id="nav-link-trash">
+              <span class="sidebar-link-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Trash
+              </span>
+              <span class="sidebar-badge" id="count-trash-badge">{{ counts.trash if counts is defined else 0 }}</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer" id="sidebar-footer-container">
+          <div class="env-indicator" id="sidebar-env-indicator" title="Connected to PostgreSQL Database">
+            <span class="env-dot"></span>
+            <span>PostgreSQL Active</span>
+          </div>
+        </div>
+      </aside>
+      {% endblock %}
+
+      <!-- Main Workspace Body -->
+      <main class="main-content" id="main-content-viewport">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- Accessible Confirmation Modal for Deletion -->
+  <div class="modal-backdrop" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
+    <div class="modal-box" id="delete-modal-box">
+      <h3 class="modal-title" id="modal-title-text">Move Note to Trash?</h3>
+      <p class="modal-description" id="modal-desc-text">
+        You can restore this note anytime from the Trash section or permanently delete it later.
+      </p>
+      <div class="modal-actions" id="modal-actions-container">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-delete">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Application JavaScript -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts_extra %}{% endblock %}
+</body>
+</html>

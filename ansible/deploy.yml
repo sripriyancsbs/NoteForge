@@ -1,0 +1,116 @@
+---
+# =============================================================================
+# Ansible Playbook: Deploy NoteForge Application
+# Deploys requested GHCR Docker image, configures environment, restarts stack,
+# tracks last known-good image state, and validates application health.
+# =============================================================================
+
+- name: Deploy NoteForge Application
+  hosts: all
+  become: true
+  vars_files:
+    - vault/secrets.yml
+
+  vars:
+    target_env: "{{ env | default('staging') }}"
+    image_tag: "{{ tag | default('latest') }}"
+    ghcr_image: "{{ image_repo | default('ghcr.io/owner/noteforge') }}"
+    app_dir: "/opt/noteforge/{{ target_env }}"
+    state_dir: "/opt/noteforge/{{ target_env }}/state"
+    compose_override: "compose.{{ 'staging' if target_env == 'staging' else 'prod' }}.yml"
+    health_port: "{{ 5001 if target_env == 'staging' else 5000 }}"
+
+  tasks:
+    - name: Validate required parameters
+      ansible.builtin.assert:
+        that:
+          - image_tag is defined
+          - image_tag | length > 0
+          - target_env in ['staging', 'production', 'local']
+        fail_msg: "Invalid deployment parameters. image_tag and target_env must be valid."
+
+    - name: Ensure application and state directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ app_dir }}"
+        - "{{ state_dir }}"
+
+    - name: Check for currently active image tag
+      ansible.builtin.slurp:
+        src: "{{ state_dir }}/active_image.txt"
+      register: current_active_file
+      ignore_errors: true
+
+    - name: Record previous known-good image prior to new deployment
+      ansible.builtin.copy:
+        content: "{{ current_active_file.content | b64decode | trim }}"
+        dest: "{{ state_dir }}/last_known_good_image.txt"
+        mode: '0644'
+      when:
+        - current_active_file is succeeded
+        - (current_active_file.content | b64decode | trim) != image_tag
+
+    - name: Copy base docker-compose and environment overrides
+      ansible.builtin.copy:
+        src: "../{{ item }}"
+        dest: "{{ app_dir }}/{{ item }}"
+        mode: '0644'
+      loop:
+        - docker-compose.yml
+        - "{{ compose_override }}"
+
+    - name: Template deployment environment file (.env) with vault secrets
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/.env"
+        mode: '0600'
+        content: |
+          FLASK_ENV={{ target_env }}
+          IMAGE_TAG={{ image_tag }}
+          GHCR_IMAGE={{ ghcr_image }}
+          {% if target_env == 'staging' %}
+          STG_DB_USER={{ stg_db_user }}
+          STG_DB_PASSWORD={{ stg_db_password }}
+          STG_DB_NAME={{ stg_db_name }}
+          STG_SECRET_KEY={{ stg_secret_key }}
+          {% else %}
+          PROD_DB_USER={{ prod_db_user }}
+          PROD_DB_PASSWORD={{ prod_db_password }}
+          PROD_DB_NAME={{ prod_db_name }}
+          PROD_SECRET_KEY={{ prod_secret_key }}
+          {% endif %}
+
+    - name: Pull requested container image from GHCR
+      ansible.builtin.command:
+        cmd: "docker pull {{ ghcr_image }}:{{ image_tag }}"
+      register: docker_pull_result
+      changed_when: "'Downloaded' in docker_pull_result.stdout or 'Pull complete' in docker_pull_result.stdout"
+
+    - name: Restart NoteForge stack via docker compose
+      ansible.builtin.command:
+        cmd: "docker compose -f docker-compose.yml -f {{ compose_override }} up -d --remove-orphans"
+        chdir: "{{ app_dir }}"
+      register: compose_up_result
+      changed_when: true
+
+    - name: Await container service health check
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ health_port }}/health"
+        method: GET
+        status_code: 200
+      register: health_probe
+      until: health_probe.status == 200
+      retries: 15
+      delay: 4
+
+    - name: Update active image record upon successful deployment
+      ansible.builtin.copy:
+        content: "{{ image_tag }}"
+        dest: "{{ state_dir }}/active_image.txt"
+        mode: '0644'
+
+    - name: Emit deployment success message
+      ansible.builtin.debug:
+        msg: "Deployment of {{ ghcr_image }}:{{ image_tag }} to {{ target_env }} succeeded and passed /health check."

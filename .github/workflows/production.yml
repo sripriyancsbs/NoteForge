@@ -1,0 +1,113 @@
+name: Production Deployment & Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic Version Tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PROD_PORT: 5000
+
+jobs:
+  deploy-production:
+    name: Production Gate & Ansible Deployment
+    runs-on: ubuntu-latest
+    # GitHub Actions Environment configured with Required Reviewers for Manual Approval Gate
+    environment:
+      name: production
+      url: https://noteforge.internal
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python & Ansible
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Deployment Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core requests cryptography
+
+      - name: Resolve Semantic Version Tag
+        id: semver
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" =~ refs/tags/(v[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            # Extract latest version from CHANGELOG.md or fallback to v1.0.0
+            VERSION=$(grep -oE '## \[v[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | head -n 1 | tr -d '## []')
+            if [ -z "$VERSION" ]; then
+              VERSION="v1.0.0"
+            fi
+          fi
+          echo "RESOLVED_VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Production deployment target version: ${VERSION}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push Production Image to GHCR (:vX.Y.Z and :latest)
+        env:
+          SEMVER_TAG: ${{ steps.semver.outputs.RESOLVED_VERSION }}
+        run: |
+          IMAGE_URI="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          
+          # Pull latest verified staging build or build production target
+          docker pull ${IMAGE_URI}:staging-latest || docker pull ${IMAGE_URI}:latest || true
+          
+          docker build -t ${IMAGE_URI}:${SEMVER_TAG} -t ${IMAGE_URI}:latest .
+          docker push ${IMAGE_URI}:${SEMVER_TAG}
+          docker push ${IMAGE_URI}:latest
+          echo "Published production images: ${IMAGE_URI}:${SEMVER_TAG} and ${IMAGE_URI}:latest"
+
+      - name: Write Ansible Vault Password File
+        env:
+          VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          mkdir -p ansible/vault
+          echo "${VAULT_PASSWORD:-noteforge_vault_key_2026}" > ansible/vault/vault_pass.txt
+          chmod 600 ansible/vault/vault_pass.txt
+
+      - name: Execute Ansible Production Deployment
+        env:
+          SEMVER_TAG: ${{ steps.semver.outputs.RESOLVED_VERSION }}
+        run: |
+          ansible-playbook -i ansible/inventory/hosts.ini ansible/deploy.yml \
+            --vault-password-file ansible/vault/vault_pass.txt \
+            --extra-vars "env=production tag=${SEMVER_TAG} image_repo=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+
+      - name: Run Production Verification Probe
+        env:
+          TARGET_URL: "http://127.0.0.1:${{ env.PROD_PORT }}"
+        run: |
+          python scripts/smoke_test.py
+
+      - name: Secure Cleanup of Vault Passwords
+        if: always()
+        run: |
+          rm -f ansible/vault/vault_pass.txt

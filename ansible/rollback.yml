@@ -1,0 +1,106 @@
+---
+# =============================================================================
+# Ansible Playbook: Rollback NoteForge Application
+# Restores the previous verified known-good Docker image version, restarts stack,
+# and verifies application availability via /health endpoint.
+# =============================================================================
+
+- name: Rollback NoteForge Application to Previous Known-Good Image
+  hosts: all
+  become: true
+  vars_files:
+    - vault/secrets.yml
+
+  vars:
+    target_env: "{{ env | default('staging') }}"
+    ghcr_image: "{{ image_repo | default('ghcr.io/owner/noteforge') }}"
+    app_dir: "/opt/noteforge/{{ target_env }}"
+    state_dir: "/opt/noteforge/{{ target_env }}/state"
+    compose_override: "compose.{{ 'staging' if target_env == 'staging' else 'prod' }}.yml"
+    health_port: "{{ 5001 if target_env == 'staging' else 5000 }}"
+
+  tasks:
+    - name: Ensure state directory exists
+      ansible.builtin.file:
+        path: "{{ state_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Read previous known-good image tag from state file
+      ansible.builtin.slurp:
+        src: "{{ state_dir }}/last_known_good_image.txt"
+      register: last_known_file
+      ignore_errors: true
+
+    - name: Fail if no previous known-good image was recorded
+      ansible.builtin.fail:
+        msg: "Cannot execute rollback: {{ state_dir }}/last_known_good_image.txt not found. No prior known-good deployment recorded."
+      when: last_known_file is failed
+
+    - name: Extract rollback image tag
+      ansible.builtin.set_fact:
+        rollback_tag: "{{ last_known_file.content | b64decode | trim }}"
+
+    - name: Validate rollback tag is non-empty
+      ansible.builtin.assert:
+        that:
+          - rollback_tag is defined
+          - rollback_tag | length > 0
+        fail_msg: "Rollback image tag is empty or invalid."
+
+    - name: Log rollback initiation
+      ansible.builtin.debug:
+        msg: "CRITICAL: Rolling back {{ target_env }} environment to previous known-good image: {{ rollback_tag }}"
+
+    - name: Update deployment environment file (.env) with rollback image tag
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/.env"
+        mode: '0600'
+        content: |
+          FLASK_ENV={{ target_env }}
+          IMAGE_TAG={{ rollback_tag }}
+          GHCR_IMAGE={{ ghcr_image }}
+          {% if target_env == 'staging' %}
+          STG_DB_USER={{ stg_db_user }}
+          STG_DB_PASSWORD={{ stg_db_password }}
+          STG_DB_NAME={{ stg_db_name }}
+          STG_SECRET_KEY={{ stg_secret_key }}
+          {% else %}
+          PROD_DB_USER={{ prod_db_user }}
+          PROD_DB_PASSWORD={{ prod_db_password }}
+          PROD_DB_NAME={{ prod_db_name }}
+          PROD_SECRET_KEY={{ prod_secret_key }}
+          {% endif %}
+
+    - name: Pull previous known-good image from GHCR
+      ansible.builtin.command:
+        cmd: "docker pull {{ ghcr_image }}:{{ rollback_tag }}"
+      register: docker_pull_result
+      changed_when: "'Downloaded' in docker_pull_result.stdout or 'Pull complete' in docker_pull_result.stdout"
+
+    - name: Restart stack with previous known-good container image
+      ansible.builtin.command:
+        cmd: "docker compose -f docker-compose.yml -f {{ compose_override }} up -d --remove-orphans"
+        chdir: "{{ app_dir }}"
+      register: compose_rollback_result
+      changed_when: true
+
+    - name: Verify application health after rollback
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ health_port }}/health"
+        method: GET
+        status_code: 200
+      register: rollback_health
+      until: rollback_health.status == 200
+      retries: 15
+      delay: 3
+
+    - name: Set active image record to the restored image tag
+      ansible.builtin.copy:
+        content: "{{ rollback_tag }}"
+        dest: "{{ state_dir }}/active_image.txt"
+        mode: '0644'
+
+    - name: Announce successful rollback completion
+      ansible.builtin.debug:
+        msg: "Rollback successful! {{ target_env }} restored to image {{ ghcr_image }}:{{ rollback_tag }} and verified healthy."

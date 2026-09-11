@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ error_title|default('Error') }} — NOTEForge{% endblock %}
+
+{% block content %}
+<div class="empty-state" id="error-state-view">
+  <svg class="empty-state-icon" style="stroke:var(--danger-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="8" x2="12" y2="12"></line>
+    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+  </svg>
+  <h2 class="empty-state-title" id="error-title-heading">{{ error_title|default('Something went wrong') }}</h2>
+  <p class="empty-state-desc" id="error-description-text">
+    {{ error_message|default('An unexpected error occurred while processing your request. Please return to the workspace or try again.') }}
+  </p>
+  <div style="display:flex; gap:10px;">
+    <a href="/" class="btn btn-primary" id="btn-return-home-error">Return to Workspace</a>
+    <button type="button" class="btn btn-secondary" onclick="window.history.back();" id="btn-back-error">Go Back</button>
+  </div>
+</div>
+{% endblock %}

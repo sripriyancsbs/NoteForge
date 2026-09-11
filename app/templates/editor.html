@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if is_new %}
+New Note — NOTEForge
+{% else %}
+Edit: {{ note.title }} — NOTEForge
+{% endif %}
+{% endblock %}
+
+{% block sidebar %}
+<!-- Collapse sidebar on editor view to maximize writing space -->
+{% endblock %}
+
+{% block content %}
+<div class="editor-wrapper" id="editor-wrapper-container">
+  <!-- Top Editor Action Bar -->
+  <div class="editor-top-bar" id="editor-top-bar">
+    <div style="display:flex; align-items:center; gap:12px; flex:1;">
+      <a href="{% if not is_new and note %}/notes/{{ note.id }}{% else %}/{% endif %}" class="btn btn-icon-only" id="btn-editor-back" title="Cancel / Go Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </a>
+
+      <input 
+        type="text" 
+        id="note-title-editor" 
+        class="editor-title-input" 
+        placeholder="Note Title..." 
+        value="{{ note.title if note else '' }}"
+        data-note-id="{{ note.id if note else '' }}"
+        autocomplete="off"
+        required
+      >
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px;">
+      <a href="{% if not is_new and note %}/notes/{{ note.id }}{% else %}/{% endif %}" class="btn btn-secondary" id="btn-cancel-editor">
+        Cancel
+      </a>
+      <button type="button" class="btn btn-primary" id="btn-save-note" title="Save Note (Ctrl+S)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        <span>Save Note</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Markdown Toolbar -->
+  <div class="editor-toolbar" id="editor-toolbar">
+    <button type="button" class="tool-btn" id="tb-bold" onclick="window.insertMarkdownSyntax('bold')" title="Bold (**text**)">
+      <strong>B</strong>
+    </button>
+    <button type="button" class="tool-btn" id="tb-italic" onclick="window.insertMarkdownSyntax('italic')" title="Italic (*text*)">
+      <em>I</em>
+    </button>
+    <button type="button" class="tool-btn" id="tb-heading" onclick="window.insertMarkdownSyntax('heading')" title="Heading (## Heading)">
+      H2
+    </button>
+    <div class="tool-divider"></div>
+    <button type="button" class="tool-btn" id="tb-quote" onclick="window.insertMarkdownSyntax('quote')" title="Blockquote (> quote)">
+      &rdquo;
+    </button>
+    <button type="button" class="tool-btn" id="tb-code" onclick="window.insertMarkdownSyntax('code')" title="Code Block (```)">
+      &lt;/&gt;
+    </button>
+    <button type="button" class="tool-btn" id="tb-list" onclick="window.insertMarkdownSyntax('list')" title="Bullet List (- item)">
+      &bull;&mdash;
+    </button>
+    <button type="button" class="tool-btn" id="tb-task" onclick="window.insertMarkdownSyntax('task')" title="Task Checklist (- [ ] task)">
+      &#9745;
+    </button>
+    <button type="button" class="tool-btn" id="tb-table" onclick="window.insertMarkdownSyntax('table')" title="Insert Markdown Table">
+      &#9638;
+    </button>
+    <div class="tool-divider"></div>
+    <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">
+      Rendered via <strong>mistune</strong> on Flask backend
+    </span>
+  </div>
+
+  <!-- Mobile Toggle Tabs -->
+  <div class="mobile-tab-bar" id="mobile-tab-bar">
+    <button type="button" class="mobile-tab-btn active" id="tab-btn-editor" onclick="window.switchMobileTab('editor')">
+      Editor
+    </button>
+    <button type="button" class="mobile-tab-btn" id="tab-btn-preview" onclick="window.switchMobileTab('preview')">
+      Live Preview
+    </button>
+  </div>
+
+  <!-- Dual-Pane Workspace -->
+  <div class="editor-panes" id="editor-panes-container" data-tab="editor">
+    <!-- Left: Raw Markdown Editor -->
+    <div class="editor-pane-left" id="editor-left-pane">
+      <textarea 
+        id="note-content-editor" 
+        class="editor-textarea" 
+        placeholder="Write your note in Markdown...
+# Header 1
+## Header 2
+Supports **bold**, *italic*, tables, checklists `- [ ]`, code blocks and more."
+        spellcheck="false"
+      >{{ note.content if note else '' }}</textarea>
+    </div>
+
+    <!-- Right: Live Rendered Mistune HTML Preview -->
+    <div class="editor-pane-right" id="editor-right-pane">
+      <div class="preview-badge" id="preview-badge-header">
+        <span>Live Mistune Preview</span>
+        <span id="preview-word-count" style="font-family:var(--font-mono);font-size:11px;">0 words</span>
+      </div>
+      <div class="markdown-body" id="markdown-preview-content">
+        <!-- Rendered live via /api/markdown/preview -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,3 @@
+# Example Ansible Vault Password File
+# For local testing or GitHub Actions secret: ANSIBLE_VAULT_PASSWORD
+noteforge_vault_key_2026

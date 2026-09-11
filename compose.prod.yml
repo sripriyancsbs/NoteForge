@@ -1,0 +1,46 @@
+# =============================================================================
+# NOTEForge Docker Compose Override: PRODUCTION ENVIRONMENT
+# Production ports, multi-replica scaling, strict restart policy, and resources
+# =============================================================================
+
+version: "3.8"
+
+services:
+  web:
+    image: ${GHCR_IMAGE:-ghcr.io/owner/noteforge}:${IMAGE_TAG:-latest}
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://${PROD_DB_USER:-noteforge_prod}:${PROD_DB_PASSWORD}@db:5432/${PROD_DB_NAME:-noteforge_production}
+      - SECRET_KEY=${PROD_SECRET_KEY}
+      - APP_VERSION=${IMAGE_TAG:-latest}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  db:
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${PROD_DB_USER:-noteforge_prod}
+      - POSTGRES_PASSWORD=${PROD_DB_PASSWORD}
+      - POSTGRES_DB=${PROD_DB_NAME:-noteforge_production}
+    volumes:
+      - noteforge_prod_pgdata:/var/lib/postgresql/data
+
+volumes:
+  noteforge_prod_pgdata:
+    name: noteforge_prod_pgdata

@@ -1,0 +1,38 @@
+# =============================================================================
+# NOTEForge Docker Compose Override: STAGING ENVIRONMENT
+# Custom ports, staging environment configuration, single replica
+# =============================================================================
+
+version: "3.8"
+
+services:
+  web:
+    image: ${GHCR_IMAGE:-ghcr.io/owner/noteforge}:${IMAGE_TAG:-staging-latest}
+    restart: always
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_ENV=staging
+      - DATABASE_URL=postgresql://${STG_DB_USER:-noteforge_stg}:${STG_DB_PASSWORD}@db:5432/${STG_DB_NAME:-noteforge_staging}
+      - SECRET_KEY=${STG_SECRET_KEY}
+      - APP_VERSION=staging-${IMAGE_TAG}
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 512M
+
+  db:
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=${STG_DB_USER:-noteforge_stg}
+      - POSTGRES_PASSWORD=${STG_DB_PASSWORD}
+      - POSTGRES_DB=${STG_DB_NAME:-noteforge_staging}
+    volumes:
+      - noteforge_stg_pgdata:/var/lib/postgresql/data
+
+volumes:
+  noteforge_stg_pgdata:
+    name: noteforge_stg_pgdata
