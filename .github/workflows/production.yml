@@ -1,11 +1,6 @@
 name: Production Deployment & Release
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
@@ -19,7 +14,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: sripriyancsbs/noteforge
+  IMAGE_URI: ghcr.io/sripriyancsbs/noteforge
   PROD_PORT: 5000
 
 jobs:
@@ -75,7 +71,7 @@ jobs:
         env:
           SEMVER_TAG: ${{ steps.semver.outputs.RESOLVED_VERSION }}
         run: |
-          IMAGE_URI="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          IMAGE_URI="${{ env.IMAGE_URI }}"
           
           # Pull latest verified staging build or build production target
           docker pull ${IMAGE_URI}:staging-latest || docker pull ${IMAGE_URI}:latest || true
@@ -103,7 +99,7 @@ jobs:
         run: |
           ansible-playbook -i ansible/inventory/hosts.ini ansible/deploy.yml \
             --vault-password-file ansible/vault/vault_pass.txt \
-            --extra-vars "env=production tag=${SEMVER_TAG} image_repo=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+            --extra-vars "env=production tag=${SEMVER_TAG} image_repo=${{ env.IMAGE_URI }}"
 
       - name: Run Production Verification Probe
         env:
