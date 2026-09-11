@@ -332,7 +332,12 @@
     confirmDeleteBtn.addEventListener('click', function () {
       if (!activeDeleteId) return;
 
-      const deleteUrl = `/api/notes/${activeDeleteId}?permanent=${activeDeleteIsPermanent ? 'true' : 'false'}`;
+      const idToDelete = activeDeleteId;
+      const isPerm = activeDeleteIsPermanent;
+      activeDeleteId = null;
+      confirmDeleteBtn.disabled = true;
+
+      const deleteUrl = `/api/notes/${idToDelete}?permanent=${isPerm ? 'true' : 'false'}`;
 
       fetch(deleteUrl, { method: 'DELETE' })
         .then(res => {
@@ -340,14 +345,13 @@
           return res.json();
         })
         .then(data => {
+          confirmDeleteBtn.disabled = false;
           closeDeleteModal();
           showToast(data.message || 'Note deleted', 'success');
           if (window.location.pathname.startsWith('/notes/')) {
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 300);
+            window.location.href = '/';
           } else {
-            const card = document.getElementById(`note-card-${activeDeleteId}`);
+            const card = document.getElementById(`note-card-${idToDelete}`);
             if (card) {
               card.style.opacity = '0';
               card.style.transform = 'scale(0.96)';
@@ -358,6 +362,7 @@
           }
         })
         .catch(err => {
+          confirmDeleteBtn.disabled = false;
           console.error('Delete error:', err);
           showToast('Failed to delete note', 'error');
           closeDeleteModal();

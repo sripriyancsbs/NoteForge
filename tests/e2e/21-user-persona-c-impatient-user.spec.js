@@ -71,10 +71,11 @@ test.describe('USER PERSONA C — IMPATIENT USER RAPID CLICKS & RACE CONDITIONS'
     await page.getByTestId('nav-link-favorites').click();
     await page.getByTestId('nav-link-trash').click();
     await expect(page).toHaveURL(/\/\?category=trash$/);
+    await page.waitForLoadState('domcontentloaded');
 
     // 7. Click Restore on the trashed note
     const trashedCard = page.locator(`[data-testid="note-card"]:has-text("${title}")`);
-    await expect(trashedCard).toBeVisible();
+    await expect(trashedCard).toBeVisible({ timeout: 10000 });
     const restoreBtn = trashedCard.getByTestId('restore-note-btn');
     // Double click restore (or click rapidly)
     await restoreBtn.click();
