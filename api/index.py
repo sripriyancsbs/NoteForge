@@ -31,6 +31,8 @@ class VercelPathMiddleware:
             environ.get("HTTP_X_MATCHED_PATH")
             or environ.get("HTTP_X_FORWARDED_URI")
             or environ.get("HTTP_X_ORIGINAL_URI")
+            or environ.get("REQUEST_URI")
+            or environ.get("RAW_URI")
         )
         if matched_path:
             # Strip query string from matched path if present

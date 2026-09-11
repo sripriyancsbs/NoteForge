@@ -202,7 +202,10 @@
   // --------------------------------------------------------------------------
   // Save Note (Create or Update)
   // --------------------------------------------------------------------------
-  window.saveCurrentNote = function () {
+  window.saveCurrentNote = function (event) {
+    if (event && typeof event.preventDefault === 'function') {
+      event.preventDefault();
+    }
     if (!noteTitleInput || !markdownTextarea) return;
 
     const title = noteTitleInput.value.trim();
@@ -258,7 +261,34 @@
   };
 
   if (saveBtn) {
-    saveBtn.addEventListener('click', window.saveCurrentNote);
+    saveBtn.addEventListener('click', function (e) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      window.saveCurrentNote(e);
+    });
+  }
+
+  // Intercept Enter key in note title to focus content textarea instead of default action
+  if (noteTitleInput) {
+    noteTitleInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (markdownTextarea) {
+          markdownTextarea.focus();
+        }
+      }
+    });
+  }
+
+  // Intercept form submit if editor inputs are enclosed in a form
+  const editorWrapper = document.getElementById('editor-wrapper-container');
+  if (editorWrapper) {
+    const parentForm = editorWrapper.closest('form');
+    if (parentForm) {
+      parentForm.addEventListener('submit', function (e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        window.saveCurrentNote(e);
+      });
+    }
   }
 
   // --------------------------------------------------------------------------
