@@ -410,3 +410,29 @@ For developers on Windows running Docker Desktop with WSL2 backend:
 - [x] Ansible Vault encrypted secrets committed (`ansible/vault/secrets.yml`)
 - [x] Automated changelog script (`scripts/update_changelog.py`)
 - [x] UI designed with clean Linear/Notion/Obsidian productivity aesthetics
+- [x] Vercel serverless deployment entrypoint and configuration (`api/index.py`, `vercel.json`)
+
+---
+
+## 17. Vercel Public Deployment
+
+NoteForge supports **Vercel** as an additional public serverless deployment target alongside the Docker/Compose and Ansible infrastructure.
+
+### Architecture
+- **Flask Application**: Hosted as a Vercel Serverless Function via the entrypoint [`api/index.py`](file:///c:/Agen/NoteForge/api/index.py) configured with URL rewrites in [`vercel.json`](file:///c:/Agen/NoteForge/vercel.json).
+- **Static Assets & Templates**: Bundled and served seamlessly by the Flask application via `includeFiles` preserving `app/static/` and `app/templates/`.
+- **Hosted PostgreSQL**: Vercel serverless functions are stateless and cannot connect to local Docker containers. The database **must be externally hosted** on a managed cloud PostgreSQL provider (such as [Neon](https://neon.tech), [Supabase](https://supabase.com), [AWS RDS](https://aws.amazon.com/rds/), or [Render](https://render.com)).
+- **Health Monitoring**: The [`/health`](file:///c:/Agen/NoteForge/app/app.py) route continues to execute live `SELECT 1` probes against the hosted PostgreSQL database, returning `200 healthy` or `503 degraded`.
+
+### Required Vercel Environment Variables
+Set the following environment variables in the Vercel Dashboard under **Project Settings &rarr; Environment Variables**:
+
+| Variable | Requirement | Description / Placeholder |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | **Required** | Externally hosted PostgreSQL URI (`postgresql://<user>:<password>@<host>:5432/<dbname>?sslmode=require`) |
+| `SECRET_KEY` | **Required** | High-entropy secret key for session and cookie signing |
+| `FLASK_ENV` | Optional | Set to `production` (defaults to `development` if omitted) |
+| `APP_VERSION` | Optional | Semantic version tag reported by `/health` (e.g., `1.0.0`) |
+
+> [!CAUTION]
+> **Zero Secrets in Repository**: Never commit real database passwords, production secret keys, or cloud credentials to Git. Always supply them through Vercel Environment Variables.

@@ -28,6 +28,18 @@ def create_app(config_name: str = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_by_name.get(config_name, config_by_name["default"]))
 
+    # Override database URI dynamically if DATABASE_URL is supplied (e.g. Vercel Environment Variables)
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url and config_name != "testing":
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+
+    # Override secret key dynamically if SECRET_KEY is supplied
+    secret_key = os.environ.get("SECRET_KEY")
+    if secret_key:
+        app.config["SECRET_KEY"] = secret_key
+
     # Initialize extensions
     db.init_app(app)
 
