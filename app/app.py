@@ -58,7 +58,7 @@ def create_app(config_name: str = None) -> Flask:
         except Exception as err:
             logger.error(f"Health check DB probe failed: {err}")
             status["status"] = "degraded"
-            status["database"] = f"error: {str(err)}"
+            status["database"] = "disconnected"
             return jsonify(status), 503
 
     # -------------------------------------------------------------------------

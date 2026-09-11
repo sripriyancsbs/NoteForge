@@ -1,18 +1,50 @@
+# Version Control & CI
 .git
 .gitignore
+.github
+
+# Virtual Environments
 .venv
 venv
+env
+ENV
+
+# Python Bytecode & Cache
 __pycache__
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+
+# Testing, Coverage & Playwright
 .pytest_cache
 .coverage
 htmlcov
 tests
-.vscode
-.idea
-*.log
+test-results
+playwright-report
+node_modules
+
+# Environment & Secret Files
 .env
 .env.*
+*.vault_pass
+vault_pass.txt
+.vault_pass
 ansible/vault/vault_pass*
+
+# Local SQLite & Databases
+*.db
+*.sqlite
+*.sqlite3
+noteforge_dev.db
+noteforge_local.db
+instance
+
+# IDE & OS Artifacts
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.log

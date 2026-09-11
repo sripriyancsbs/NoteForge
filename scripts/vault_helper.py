@@ -107,8 +107,9 @@ if __name__ == "__main__":
 
     action = sys.argv[1].lower()
     in_file = sys.argv[2]
-    out_file = sys.argv[3]
-    pwd = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("ANSIBLE_VAULT_PASSWORD", "noteforge_vault_key_2026")
+    pwd = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("ANSIBLE_VAULT_PASSWORD")
+    if not pwd:
+        raise ValueError("ANSIBLE_VAULT_PASSWORD environment variable or password argument is required")
 
     # If password refers to a readable file, read it
     if os.path.isfile(pwd):

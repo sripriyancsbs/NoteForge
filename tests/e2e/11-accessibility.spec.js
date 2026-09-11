@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 11 — ACCESSIBILITY BASICS', () => {
   test('should verify accessible names, landmark roles, dialog semantics, and keyboard focus interactions', async ({ page, request }) => {
@@ -12,6 +13,8 @@ test.describe('TEST SUITE 11 — ACCESSIBILITY BASICS', () => {
       data: { title: testTitle, content: testContent }
     });
     const createdNote = await createRes.json();
+
+    try {
 
     // 2. Open Home View and verify accessible landmarks and roles
     await page.goto('/');
@@ -99,5 +102,8 @@ test.describe('TEST SUITE 11 — ACCESSIBILITY BASICS', () => {
     // Test live region toast accessibility container
     const toastContainer = page.locator('#toast-container');
     await expect(toastContainer).toHaveAttribute('aria-live', 'polite');
+    } finally {
+      await deleteTestNote(request, createdNote.id);
+    }
   });
 });

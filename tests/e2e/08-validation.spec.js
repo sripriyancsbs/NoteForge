@@ -1,9 +1,13 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 8 — VALIDATION', () => {
   test('should enforce input validation for empty title, empty content, and length limits, and allow user to correct', async ({ page, request }) => {
     const runId = Date.now();
+    let createdNoteId = null;
+
+    try {
 
     // 1. Open New Note page
     await page.goto('/notes/new');
@@ -63,10 +67,15 @@ test.describe('TEST SUITE 8 — VALIDATION', () => {
 
     // Verify successful save and redirection to the created note view
     await expect(page).toHaveURL(/\/notes\/\d+$/);
+    const urlMatch = page.url().match(/\/notes\/(\d+)$/);
+    if (urlMatch) createdNoteId = urlMatch[1];
 
     // Verify created note content in view
     await expect(page.getByTestId('view-note-title')).toHaveText(validTitle);
     await expect(page.getByTestId('view-markdown-content').locator('h3')).toHaveText('Validated Architecture');
     await expect(page.getByTestId('view-markdown-content')).toContainText('All validation errors resolved cleanly.');
+    } finally {
+      await deleteTestNote(request, createdNoteId);
+    }
   });
 });

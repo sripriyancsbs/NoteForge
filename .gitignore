@@ -21,9 +21,12 @@ node_modules/
 .env
 .env.local
 .env.*.local
-*.vault_pass
+*.vault_pass*
 vault_pass.txt
 .vault_pass
+.vault_pass*
+ansible/vault/vault_pass.txt
+ansible/vault/.vault_pass*
 
 # Database
 *.db

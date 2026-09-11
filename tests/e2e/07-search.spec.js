@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 7 — SEARCH', () => {
   test('should search notes by keyword, isolate matches, exclude non-matches, and restore full list on clear', async ({ page, request }) => {
@@ -18,11 +19,15 @@ test.describe('TEST SUITE 7 — SEARCH', () => {
       data: { title: noteATitle, content: noteAContent }
     });
     expect(resA.status()).toBe(201);
+    const noteA = await resA.json();
 
     const resB = await request.post('/api/notes', {
       data: { title: noteBTitle, content: noteBContent }
     });
     expect(resB.status()).toBe(201);
+    const noteB = await resB.json();
+
+    try {
 
     // 1. Navigate to home notes list
     await page.goto('/');
@@ -75,5 +80,9 @@ test.describe('TEST SUITE 7 — SEARCH', () => {
     await searchInput.press('Enter');
     await expect(page).toHaveURL('/');
     await expect(page.locator(`[data-testid="note-card"]:has-text("${noteATitle}")`)).toBeVisible();
+    } finally {
+      await deleteTestNote(request, noteA.id);
+      await deleteTestNote(request, noteB.id);
+    }
   });
 });

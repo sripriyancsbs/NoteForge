@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 5 — DELETE NOTE', () => {
   test('should verify delete confirmation dialog, cancellation, deletion, list update, and 404 on access', async ({ page, request }) => {
@@ -13,6 +14,8 @@ test.describe('TEST SUITE 5 — DELETE NOTE', () => {
     });
     expect(resp.status()).toBe(201);
     const noteData = await resp.json();
+
+    try {
 
     // 2. Open the note
     await page.goto(`/notes/${noteData.id}`);
@@ -52,5 +55,8 @@ test.describe('TEST SUITE 5 — DELETE NOTE', () => {
     const viewResp = await page.goto(`/notes/${noteData.id}`);
     expect(viewResp?.status()).toBe(404);
     await expect(page.locator('#error-title-heading')).toHaveText('Note Not Found');
+    } finally {
+      await deleteTestNote(request, noteData.id);
+    }
   });
 });

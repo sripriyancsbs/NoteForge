@@ -20,6 +20,8 @@
         type="button" 
         class="btn btn-secondary" 
         id="btn-view-fav" 
+        data-testid="view-fav-btn"
+        title="Toggle Favorite"
         onclick="window.toggleFavorite({{ note.id }}, event)"
       >
         <svg id="fav-icon-{{ note.id }}" class="{% if note.is_favorite %}active-fav{% endif %}" width="14" height="14" viewBox="0 0 24 24" fill="{% if note.is_favorite %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2">
@@ -27,7 +29,7 @@
         </svg>
         <span>Favorite</span>
       </button>
-      <a href="/notes/{{ note.id }}/edit" class="btn btn-secondary" id="btn-view-edit" data-testid="view-edit-btn">
+      <a href="/notes/{{ note.id }}/edit" class="btn btn-secondary" id="btn-view-edit" data-testid="view-edit-btn" title="Edit Note">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -39,6 +41,7 @@
         class="btn btn-danger" 
         id="btn-view-delete" 
         data-testid="view-delete-btn"
+        title="Move to Trash"
         onclick="window.promptDeleteNote({{ note.id }}, false)"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -73,9 +76,9 @@
     <header class="note-view-header" id="note-view-header">
       <h1 class="note-view-title" id="note-view-title" data-testid="view-note-title">{{ note.title }}</h1>
       <div class="note-view-metadata" id="note-view-meta" data-testid="view-note-meta">
-        <span>Created {{ note.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+        <span>Created {{ note.created_at.strftime('%b %d, %Y') }}</span>
         <span>&bull;</span>
-        <span>Last modified {{ note.updated_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+        <span>Last modified {{ note.updated_at.strftime('%b %d, %Y') }}</span>
         <span>&bull;</span>
         <span>{{ note.to_dict()['reading_time_min'] }} min read ({{ note.to_dict()['word_count'] }} words)</span>
       </div>

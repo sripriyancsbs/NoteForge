@@ -81,8 +81,11 @@ jobs:
           VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
         run: |
           mkdir -p ansible/vault
-          # Use secret or fallback default if local runner
-          echo "${VAULT_PASSWORD:-noteforge_vault_key_2026}" > ansible/vault/vault_pass.txt
+          if [ -z "$VAULT_PASSWORD" ]; then
+            echo "Error: ANSIBLE_VAULT_PASSWORD secret is not set." >&2
+            exit 1
+          fi
+          echo "$VAULT_PASSWORD" > ansible/vault/vault_pass.txt
           chmod 600 ansible/vault/vault_pass.txt
 
       - name: Execute Ansible Staging Deployment

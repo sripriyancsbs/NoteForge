@@ -32,6 +32,7 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuse
 
 # Copy installed python packages from builder
 COPY --from=builder /root/.local /home/appuser/.local
+ENV PYTHONUSERBASE=/home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -50,4 +51,4 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
 # Launch with production Gunicorn WSGI server
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--threads", "2", "--access-logfile", "-", "--error-logfile", "-", "app.app:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--threads", "2", "--no-control-socket", "--access-logfile", "-", "--error-logfile", "-", "app.app:create_app()"]

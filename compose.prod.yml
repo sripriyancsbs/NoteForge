@@ -13,6 +13,11 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${PROD_DB_NAME:-noteforge_production}
+      - DATABASE_USER=${PROD_DB_USER:-noteforge_prod}
+      - DATABASE_PASSWORD=${PROD_DB_PASSWORD}
       - DATABASE_URL=postgresql://${PROD_DB_USER:-noteforge_prod}:${PROD_DB_PASSWORD}@db:5432/${PROD_DB_NAME:-noteforge_production}
       - SECRET_KEY=${PROD_SECRET_KEY}
       - APP_VERSION=${IMAGE_TAG:-latest}

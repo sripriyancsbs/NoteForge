@@ -1,11 +1,15 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 2 — CREATE NOTE', () => {
-  test('should execute complete note creation journey from UI and verify in notes list and view', async ({ page }) => {
+  test('should execute complete note creation journey from UI and verify in notes list and view', async ({ page, request }) => {
     const testId = Date.now();
     const noteTitle = `Engineering Architecture Guide ${testId}`;
     const noteContent = `## System Specification ${testId}\n\nThis note validates the real-world creation flow.`;
+    let noteId = null;
+
+    try {
 
     // 1. Open Notes page
     await page.goto('/');
@@ -34,6 +38,8 @@ test.describe('TEST SUITE 2 — CREATE NOTE', () => {
 
     // 6. Verify successful save (redirected to note view with assigned ID)
     await expect(page).toHaveURL(/\/notes\/\d+$/);
+    const urlMatch = page.url().match(/\/notes\/(\d+)$/);
+    if (urlMatch) noteId = urlMatch[1];
     await expect(page.getByTestId('view-note-title')).toHaveText(noteTitle);
 
     // 7. Verify the note appears in the notes list
@@ -53,5 +59,8 @@ test.describe('TEST SUITE 2 — CREATE NOTE', () => {
     const viewContent = page.getByTestId('view-markdown-content');
     await expect(viewContent.locator('h2')).toHaveText(`System Specification ${testId}`);
     await expect(viewContent).toContainText('This note validates the real-world creation flow.');
+    } finally {
+      await deleteTestNote(request, noteId);
+    }
   });
 });

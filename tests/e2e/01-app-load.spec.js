@@ -41,6 +41,15 @@ test.describe('TEST SUITE 1 — APPLICATION LOAD', () => {
     const sidebar = page.locator('#navigation-sidebar');
     await expect(sidebar).toBeVisible();
 
+    // 4. Verify dynamic backend data rendering in navigation
+    const allNotesBadge = page.locator('#count-all-badge');
+    await expect(allNotesBadge).toBeVisible();
+    await expect(allNotesBadge).toHaveText(/^\d+$/);
+
+    const envIndicator = page.locator('#sidebar-env-indicator');
+    await expect(envIndicator).toBeVisible();
+    await expect(envIndicator).toContainText('PostgreSQL Active');
+
     // 4. Assert zero unexpected console errors
     expect(consoleErrors).toEqual([]);
 

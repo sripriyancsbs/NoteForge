@@ -9,7 +9,7 @@ Edit: {{ note.title }} — NOTEForge
 {% endblock %}
 
 {% block sidebar %}
-<!-- Collapse sidebar on editor view to maximize writing space -->
+<!-- Collapse sidebar on editor view to maximize focused writing space -->
 {% endblock %}
 
 {% block content %}
@@ -18,7 +18,7 @@ Edit: {{ note.title }} — NOTEForge
   <div class="editor-top-bar" id="editor-top-bar">
     <div style="display:flex; align-items:center; gap:12px; flex:1;">
       <a href="{% if not is_new and note %}/notes/{{ note.id }}{% else %}/{% endif %}" class="btn btn-icon-only" id="btn-editor-back" title="Cancel / Go Back">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
@@ -80,8 +80,8 @@ Edit: {{ note.title }} — NOTEForge
       &#9638;
     </button>
     <div class="tool-divider"></div>
-    <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">
-      Rendered via <strong>mistune</strong> on Flask backend
+    <span style="font-size:11px; color:var(--text-muted); margin-left:auto; display:flex; align-items:center; gap:6px;">
+      <span>Powered by mistune</span>
     </span>
   </div>
 
@@ -104,8 +104,7 @@ Edit: {{ note.title }} — NOTEForge
         data-testid="note-content-editor"
         class="editor-textarea" 
         placeholder="Write your note in Markdown...
-# Header 1
-## Header 2
+# Heading
 Supports **bold**, *italic*, tables, checklists `- [ ]`, code blocks and more."
         spellcheck="false"
       >{{ note.content if note else '' }}</textarea>
@@ -115,7 +114,7 @@ Supports **bold**, *italic*, tables, checklists `- [ ]`, code blocks and more."
     <div class="editor-pane-right" id="editor-right-pane">
       <div class="preview-badge" id="preview-badge-header">
         <span>Live Mistune Preview</span>
-        <span id="preview-word-count" style="font-family:var(--font-mono);font-size:11px;">0 words</span>
+        <span id="preview-word-count" style="font-family:var(--font-mono); font-size:11px;">0 words</span>
       </div>
       <div class="markdown-body" id="markdown-preview-content" data-testid="markdown-preview-content">
         <!-- Rendered live via /api/markdown/preview -->

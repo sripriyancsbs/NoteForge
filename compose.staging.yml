@@ -13,9 +13,14 @@ services:
       - "5001:5000"
     environment:
       - FLASK_ENV=staging
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${STG_DB_NAME:-noteforge_staging}
+      - DATABASE_USER=${STG_DB_USER:-noteforge_stg}
+      - DATABASE_PASSWORD=${STG_DB_PASSWORD}
       - DATABASE_URL=postgresql://${STG_DB_USER:-noteforge_stg}:${STG_DB_PASSWORD}@db:5432/${STG_DB_NAME:-noteforge_staging}
       - SECRET_KEY=${STG_SECRET_KEY}
-      - APP_VERSION=staging-${IMAGE_TAG}
+      - APP_VERSION=staging-${IMAGE_TAG:-latest}
     deploy:
       replicas: 1
       resources:

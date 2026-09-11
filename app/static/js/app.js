@@ -1,9 +1,9 @@
 /* ==========================================================================
    NOTEForge Application Logic
-   - Real backend mistune Markdown rendering
-   - Debounced preview sync
+   - Backend mistune Markdown rendering & live debounced sync
+   - Dual-theme persistence (Dark Slate & Light Paper)
    - Keyboard shortcuts (Ctrl+S, Ctrl+K, Ctrl+N, Esc)
-   - Toast feedback & accessible confirmation modal
+   - Toast notifications & accessible modal confirmation
    ========================================================================== */
 
 (function () {
@@ -26,6 +26,50 @@
   const wordCountDisplay = document.getElementById('preview-word-count');
 
   // --------------------------------------------------------------------------
+  // Theme Management System (Dark / Light with LocalStorage Persistence)
+  // --------------------------------------------------------------------------
+  function updateThemeUI(theme) {
+    const modeText = document.getElementById('theme-mode-text');
+    const icon = document.getElementById('theme-icon-indicator');
+    if (modeText) {
+      modeText.textContent = theme === 'light' ? 'Light' : 'Dark';
+    }
+    if (icon) {
+      if (theme === 'light') {
+        icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+      } else {
+        icon.innerHTML = `
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        `;
+      }
+    }
+  }
+
+  window.toggleTheme = function () {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    try {
+      localStorage.setItem('noteforge-theme', newTheme);
+    } catch {
+      // Ignore storage errors in private browsing modes
+    }
+    updateThemeUI(newTheme);
+  };
+
+  // Sync theme UI on load
+  const initialTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  updateThemeUI(initialTheme);
+
+  // --------------------------------------------------------------------------
   // Toast Notification System
   // --------------------------------------------------------------------------
   window.showToast = function (message, type = 'info') {
@@ -38,15 +82,15 @@
 
     let iconSvg = '';
     if (type === 'success') {
-      iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
     } else if (type === 'error') {
-      iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+      iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
     } else {
-      iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+      iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
     }
 
     toast.innerHTML = `
-      <span style="display:inline-flex;color:inherit;">${iconSvg}</span>
+      <span style="display:inline-flex;color:inherit;flex-shrink:0;">${iconSvg}</span>
       <span style="flex:1;">${message}</span>
     `;
 
@@ -54,7 +98,7 @@
 
     setTimeout(() => {
       toast.style.opacity = '0';
-      toast.style.transform = 'translateY(12px)';
+      toast.style.transform = 'translateY(10px)';
       setTimeout(() => toast.remove(), 200);
     }, 3200);
   };
@@ -94,7 +138,7 @@
 
   if (markdownTextarea) {
     markdownTextarea.addEventListener('input', schedulePreviewUpdate);
-    // Initial preview render on page load
+    // Initial preview render on editor load
     renderLiveMarkdown();
   }
 
@@ -130,7 +174,7 @@
         cursorOffset = replacement.length;
         break;
       case 'code':
-        replacement = selection ? `\`${selection}\`` : `\n\`\`\`python\n# your code here\n\`\`\`\n`;
+        replacement = selection ? `\`${selection}\`` : `\n\`\`\`python\n# code block\n\`\`\`\n`;
         cursorOffset = replacement.length;
         break;
       case 'list':
@@ -142,7 +186,7 @@
         cursorOffset = replacement.length;
         break;
       case 'table':
-        replacement = `\n| Column 1 | Column 2 | Column 3 |\n| :--- | :--- | :--- |\n| Item A | Data 1 | $10 |\n| Item B | Data 2 | $20 |\n`;
+        replacement = `\n| Column 1 | Column 2 | Column 3 |\n| :--- | :--- | :--- |\n| Row 1 | Data A | 100 |\n| Row 2 | Data B | 200 |\n`;
         cursorOffset = replacement.length;
         break;
       default:
@@ -201,7 +245,7 @@
         showToast('Note saved successfully!', 'success');
         setTimeout(() => {
           window.location.href = `/notes/${savedNote.id}`;
-        }, 300);
+        }, 250);
       })
       .catch(err => {
         console.error('Save error:', err);
@@ -268,18 +312,16 @@
         .then(data => {
           closeDeleteModal();
           showToast(data.message || 'Note deleted', 'success');
-          // If we're on a single note view, redirect to home
           if (window.location.pathname.startsWith('/notes/')) {
             setTimeout(() => {
               window.location.href = '/';
-            }, 350);
+            }, 300);
           } else {
-            // Remove card from UI or reload
             const card = document.getElementById(`note-card-${activeDeleteId}`);
             if (card) {
               card.style.opacity = '0';
-              card.style.transform = 'scale(0.95)';
-              setTimeout(() => card.remove(), 200);
+              card.style.transform = 'scale(0.96)';
+              setTimeout(() => card.remove(), 180);
             } else {
               window.location.reload();
             }
@@ -387,7 +429,6 @@
 
     // Ctrl+N / Cmd+N -> New Note
     if (modifier && e.key === 'n') {
-      // Don't intercept browser if in editor, but allow quick new note navigation
       if (!window.location.pathname.endsWith('/new')) {
         e.preventDefault();
         window.location.href = '/notes/new';

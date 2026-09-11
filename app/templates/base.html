@@ -7,15 +7,29 @@
   <meta name="description" content="NOTEForge is a high-performance, production-grade Markdown notes workspace backed by PostgreSQL and mistune.">
   <meta name="keywords" content="notes, markdown, devops, productivity, postgresql, flask">
   
+  <!-- Immediate Theme Initialization (Prevents FOUC) -->
+  <script>
+    (function () {
+      const storedTheme = localStorage.getItem('noteforge-theme');
+      if (storedTheme === 'light' || storedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', storedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
   <!-- Favicon / Brand Icon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
 
-  <!-- Inter Font -->
+  <!-- Inter & JetBrains Mono Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <!-- Core Styles -->
+  <!-- Core Stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   {% block head_extra %}{% endblock %}
 </head>
@@ -23,11 +37,11 @@
   <div class="app-shell" id="app-root">
     <!-- Top Navigation Bar -->
     <header class="top-nav" id="top-navigation">
-      <div style="display:flex; align-items:center; gap:20px;">
+      <div style="display:flex; align-items:center; gap:16px;">
         <a href="/" class="brand-section" id="brand-link" title="NOTEForge Home">
           <div class="brand-logo" id="brand-logo-icon">NF</div>
           <span class="brand-title">NOTEForge</span>
-          <span class="brand-badge" id="env-badge">PROD-CI/CD</span>
+          <span class="brand-badge" id="env-badge">PROD</span>
         </a>
       </div>
 
@@ -117,7 +131,26 @@
           </li>
         </ul>
 
+        <!-- Sidebar Footer with Theme Toggle & PostgreSQL Status -->
         <div class="sidebar-footer" id="sidebar-footer-container">
+          <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" onclick="window.toggleTheme()" title="Toggle Theme (Light / Dark)">
+            <span style="display:inline-flex; align-items:center; gap:8px;">
+              <svg id="theme-icon-indicator" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              <span id="theme-label-text">Theme</span>
+            </span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);" id="theme-mode-text">Dark</span>
+          </button>
+
           <div class="env-indicator" id="sidebar-env-indicator" title="Connected to PostgreSQL Database">
             <span class="env-dot"></span>
             <span>PostgreSQL Active</span>

@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 6 — MARKDOWN RENDERING', () => {
   test('should render markdown syntax into real HTML elements: h1, strong, em, ul/li, and code', async ({ page, request }) => {
@@ -25,6 +26,8 @@ test.describe('TEST SUITE 6 — MARKDOWN RENDERING', () => {
     });
     expect(resp.status()).toBe(201);
     const noteData = await resp.json();
+
+    try {
 
     // 2. Open the note reading view
     await page.goto(`/notes/${noteData.id}`);
@@ -69,5 +72,8 @@ test.describe('TEST SUITE 6 — MARKDOWN RENDERING', () => {
     expect(innerText).not.toContain('**bold**');
     expect(innerText).not.toContain('*italic*');
     expect(innerText).not.toContain('`inline code`');
+    } finally {
+      await deleteTestNote(request, noteData.id);
+    }
   });
 });

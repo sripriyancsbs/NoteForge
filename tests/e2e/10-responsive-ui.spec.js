@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 10 — RESPONSIVE UI', () => {
   const VIEWPORTS = [
@@ -13,11 +14,15 @@ test.describe('TEST SUITE 10 — RESPONSIVE UI', () => {
       const runId = Date.now();
       const noteTitle = `Responsive Test ${vp.name} ${runId}`;
       const noteBody = `## Responsive Note for ${vp.name}\n\nTesting layout adaptability at width ${vp.width}px.`;
+      let createdId = null;
 
       // Seed a note for list viewing
-      await request.post('/api/notes', {
+      const seedRes = await request.post('/api/notes', {
         data: { title: noteTitle, content: noteBody }
       });
+      const seedNote = await seedRes.json();
+
+      try {
 
       // 1. Set viewport
       await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -101,6 +106,8 @@ test.describe('TEST SUITE 10 — RESPONSIVE UI', () => {
       // Save note and verify view page responsiveness
       await saveBtn.click();
       await expect(page).toHaveURL(/\/notes\/\d+$/);
+      const urlMatch = page.url().match(/\/notes\/(\d+)$/);
+      if (urlMatch) createdId = urlMatch[1];
 
       // Verify view page elements
       await expect(page.getByTestId('view-note-title')).toHaveText(createdTitle);
@@ -111,6 +118,10 @@ test.describe('TEST SUITE 10 — RESPONSIVE UI', () => {
         return document.documentElement.scrollWidth <= window.innerWidth + 1;
       });
       expect(hasNoHorizontalOverflowView).toBe(true);
+      } finally {
+        await deleteTestNote(request, seedNote.id);
+        await deleteTestNote(request, createdId);
+      }
     });
   }
 });

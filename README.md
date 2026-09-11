@@ -330,21 +330,21 @@ Production secrets (database passwords, session secret keys) are encrypted using
 ### Decrypting / Viewing Secrets
 ```powershell
 # Using the cross-platform vault helper
-python scripts/vault_helper.py decrypt ansible/vault/secrets.yml decrypted.yml "noteforge_vault_key_2026"
+python scripts/vault_helper.py decrypt ansible/vault/secrets.yml decrypted.yml "<your-vault-password>"
 
 # Or using native ansible-vault (Linux / WSL2)
-ansible-vault view ansible/vault/secrets.yml --vault-password-file ansible/vault/vault_pass.example
+ansible-vault view ansible/vault/secrets.yml --vault-password-file ansible/vault/vault_pass.txt
 ```
 
 ### Encrypting Updated Secrets
 ```powershell
-python scripts/vault_helper.py encrypt updated.yml ansible/vault/secrets.yml "noteforge_vault_key_2026"
+python scripts/vault_helper.py encrypt updated.yml ansible/vault/secrets.yml "<your-vault-password>"
 ```
 
 ### GitHub Actions Configuration
 Configure the secret in your GitHub repository:
 - **Name**: `ANSIBLE_VAULT_PASSWORD`
-- **Value**: `noteforge_vault_key_2026` (or your chosen production vault key)
+- **Value**: Your secure production vault key (stored in GitHub Secrets)
 
 ---
 

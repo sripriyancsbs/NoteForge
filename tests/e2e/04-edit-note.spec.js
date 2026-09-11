@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 4 — EDIT NOTE', () => {
   test('should edit an existing note and verify updated title, updated content, and absence of old content', async ({ page, request }) => {
@@ -16,6 +17,8 @@ test.describe('TEST SUITE 4 — EDIT NOTE', () => {
     expect(resp.status()).toBe(201);
     const noteData = await resp.json();
 
+    try {
+
     // 2. Open it
     await page.goto(`/notes/${noteData.id}`);
     await expect(page.getByTestId('view-note-title')).toHaveText(originalTitle);
@@ -24,9 +27,15 @@ test.describe('TEST SUITE 4 — EDIT NOTE', () => {
     await page.getByTestId('view-edit-btn').click();
     await expect(page).toHaveURL(new RegExp(`/notes/${noteData.id}/edit$`));
 
-    // 4. Edit title and Markdown content
+    // 4. Verify that the edit form is genuinely pre-populated with existing data
     const titleInput = page.getByTestId('note-title-editor');
     const contentInput = page.getByTestId('note-content-editor');
+    await expect(titleInput).toBeVisible();
+    await expect(titleInput).toHaveValue(originalTitle);
+    await expect(contentInput).toBeVisible();
+    await expect(contentInput).toHaveValue(originalContent);
+
+    // 5. Edit title and Markdown content
     await titleInput.fill(updatedTitle);
     await contentInput.fill(updatedContent);
 
@@ -48,5 +57,8 @@ test.describe('TEST SUITE 4 — EDIT NOTE', () => {
     // 9. Verify old content is no longer displayed
     await expect(contentLocator).not.toContainText(`Initial unique text content alpha ${testId}`);
     await expect(titleLocator).not.toHaveText(originalTitle);
+    } finally {
+      await deleteTestNote(request, noteData.id);
+    }
   });
 });

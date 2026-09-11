@@ -1,14 +1,18 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 12 — REGRESSION', () => {
-  test('should execute complete end-to-end user lifecycle: Create -> View -> Edit -> Search -> View -> Delete', async ({ page }) => {
+  test('should execute complete end-to-end user lifecycle: Create -> View -> Edit -> Search -> View -> Delete', async ({ page, request }) => {
     const runId = Date.now();
     const initialTitle = `Full Lifecycle Master Note ${runId}`;
     const initialMarkdown = `# Phase 1: Creation\n\nInitial architectural draft for regression testing ${runId}.\n\n- Task A\n- Task B`;
 
     const updatedTitle = `Full Lifecycle Master Note ${runId} [UPDATED]`;
     const updatedMarkdown = `# Phase 2: Revision\n\nUpdated architectural specification after review ${runId}.\n\n> Verified revision state.`;
+    let noteId = null;
+
+    try {
 
     // -------------------------------------------------------------------------
     // 1. Initial Load & Navigation
@@ -39,7 +43,7 @@ test.describe('TEST SUITE 12 — REGRESSION', () => {
     const noteUrl = page.url();
     const noteIdMatch = noteUrl.match(/\/notes\/(\d+)$/);
     expect(noteIdMatch).not.toBeNull();
-    const noteId = noteIdMatch ? noteIdMatch[1] : '';
+    noteId = noteIdMatch ? noteIdMatch[1] : '';
 
     // Verify view rendering of initial state
     await expect(page.getByTestId('view-note-title')).toHaveText(initialTitle);
@@ -127,5 +131,8 @@ test.describe('TEST SUITE 12 — REGRESSION', () => {
     const directAccessResponse = await page.goto(`/notes/${noteId}`);
     expect(directAccessResponse?.status()).toBe(404);
     await expect(page.locator('#error-title-heading')).toHaveText('Note Not Found');
+    } finally {
+      await deleteTestNote(request, noteId);
+    }
   });
 });

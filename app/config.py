@@ -11,14 +11,23 @@ class BaseConfig:
     MISTUNE_ESCAPE_HTML = False
     PAGINATION_PER_PAGE = 20
 
-    # Ensure postgresql:// schema
-    _raw_db_url = os.environ.get(
-        "DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/noteforge"
-    )
-    if _raw_db_url and _raw_db_url.startswith("postgres://"):
+    # Resolve database URL from DATABASE_URL or individual environment components
+    _raw_db_url = os.environ.get("DATABASE_URL")
+    if not _raw_db_url:
+        _db_user = os.environ.get("DATABASE_USER", os.environ.get("POSTGRES_USER", "noteforge_user"))
+        _db_pwd = os.environ.get("DATABASE_PASSWORD", os.environ.get("POSTGRES_PASSWORD", "noteforge_dev_pwd"))
+        _db_host = os.environ.get("DATABASE_HOST", "db")
+        _db_port = os.environ.get("DATABASE_PORT", "5432")
+        _db_name = os.environ.get("DATABASE_NAME", os.environ.get("POSTGRES_DB", "noteforge"))
+        _raw_db_url = f"postgresql://{_db_user}:{_db_pwd}@{_db_host}:{_db_port}/{_db_name}"
+    elif _raw_db_url.startswith("postgres://"):
         _raw_db_url = _raw_db_url.replace("postgres://", "postgresql://", 1)
+
     SQLALCHEMY_DATABASE_URI = _raw_db_url
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
 
 
 class DevelopmentConfig(BaseConfig):
