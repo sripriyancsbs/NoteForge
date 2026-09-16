@@ -321,3 +321,28 @@ def test_html_views(client, sample_note):
     r_missing = client.get("/notes/999999")
     assert r_missing.status_code == 404
     assert b"Note Not Found" in r_missing.data
+
+
+# -----------------------------------------------------------------------------
+# 10. Vercel Serverless Function & Path Middleware Tests
+# -----------------------------------------------------------------------------
+def test_vercel_entrypoint_routing(app):
+    """Test that Vercel entrypoint preserves routes and handles rewrites properly."""
+    from api.index import VercelPathMiddleware
+    app.wsgi_app = VercelPathMiddleware(app.wsgi_app)
+    v_client = app.test_client()
+
+    # Direct access to /notes/new must render the new note editor
+    res = v_client.get("/notes/new")
+    assert res.status_code == 200
+    assert b"Save Note" in res.data
+    assert b"New Note" in res.data
+
+    # Direct access to /api/index should map to home
+    res = v_client.get("/api/index")
+    assert res.status_code == 200
+    assert b"NOTEForge" in res.data
+
+    # Direct access to /api/notes should work
+    res = v_client.get("/api/notes")
+    assert res.status_code == 200

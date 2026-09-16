@@ -77,6 +77,7 @@ def create_app(config_name: str = None) -> Flask:
     # UI Web Pages (HTML Rendering)
     # -------------------------------------------------------------------------
     @app.route("/", methods=["GET"])
+    @app.route("/api/index", methods=["GET"])
     def home():
         """Main workspace view with sidebar, note list, and search."""
         category = request.args.get("category", "all")
