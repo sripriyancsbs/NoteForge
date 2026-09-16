@@ -229,6 +229,22 @@ def test_markdown_preview_endpoint(client):
     assert data["word_count"] > 0
 
 
+def test_mistune_line_breaks_preserved(client):
+    """Verify separate lines in Markdown text render with line breaks (<br />) instead of collapsing."""
+    raw_content = "hvcncv b\ndtgchn cvg\nbjgmhvg"
+    html = render_markdown(raw_content)
+    assert "<br" in html
+    assert "hvcncv b" in html
+    assert "dtgchn cvg" in html
+    assert "bjgmhvg" in html
+
+    # Also verify via /api/markdown/preview endpoint
+    res = client.post("/api/markdown/preview", json={"content": raw_content})
+    assert res.status_code == 200
+    preview_html = res.get_json()["html"]
+    assert "<br" in preview_html
+
+
 # -----------------------------------------------------------------------------
 # 6. Search Functionality Tests
 # -----------------------------------------------------------------------------

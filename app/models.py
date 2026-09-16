@@ -4,15 +4,16 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-# Configure mistune Markdown renderer with modern plugins
+# Configure mistune Markdown renderer with modern plugins and hard line breaks
 try:
-    # mistune v3+ plugin configuration
+    # mistune v3+ plugin configuration with hard_wrap enabled for intuitive note line breaks
     markdown_renderer = mistune.create_markdown(
+        hard_wrap=True,
         plugins=['table', 'task_lists', 'strikethrough', 'footnotes', 'def_list']
     )
 except Exception:
     # fallback to default mistune renderer if plugin configuration differs
-    markdown_renderer = mistune.html
+    markdown_renderer = mistune.create_markdown(hard_wrap=True)
 
 
 def render_markdown(text: str) -> str:
@@ -22,8 +23,11 @@ def render_markdown(text: str) -> str:
     try:
         return markdown_renderer(text)
     except Exception:
-        # Fallback to direct mistune call
-        return mistune.html(text)
+        # Fallback to direct mistune call with hard_wrap
+        try:
+            return mistune.create_markdown(hard_wrap=True)(text)
+        except Exception:
+            return mistune.html(text)
 
 
 class Note(db.Model):
