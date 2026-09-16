@@ -338,6 +338,17 @@ def test_vercel_entrypoint_routing(app):
     assert b"Save Note" in res.data
     assert b"New Note" in res.data
 
+    # Vercel rewrite simulation: /api/index?__vercel_path=notes/new
+    res_rewrite = v_client.get("/api/index?__vercel_path=notes/new")
+    assert res_rewrite.status_code == 200
+    assert b"Save Note" in res_rewrite.data
+    assert b"New Note" in res_rewrite.data
+
+    # Vercel rewrite simulation with query params: /api/index?category=trash&__vercel_path=
+    res_trash = v_client.get("/api/index?category=trash&__vercel_path=")
+    assert res_trash.status_code == 200
+    assert b"Trash" in res_trash.data
+
     # Direct access to /api/index should map to home
     res = v_client.get("/api/index")
     assert res.status_code == 200

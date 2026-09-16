@@ -4,6 +4,7 @@ Vercel Serverless Function entrypoint for NoteForge Flask application.
 """
 import os
 import sys
+import urllib.parse
 
 # Ensure repository root is on sys.path for module resolution in Vercel runtime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,32 +16,25 @@ class VercelPathMiddleware:
     """
     WSGI middleware for Vercel Serverless Function deployment.
 
-    Ensures that client URL paths are preserved for Flask routing.
-    If PATH_INFO points to the serverless function entrypoint (/api/index or
-    /api/index.py), it restores the original requested path from request headers/URI,
-    or falls back to root ('/').
+    Vercel rewrites `/(.*)` to `/api/index?__vercel_path=$1`.
+    This middleware extracts `__vercel_path` from the query string to restore
+    the original client requested `PATH_INFO` (e.g. `/notes/new`, `/api/notes`, `/health`),
+    and cleans up `QUERY_STRING` so Flask route handlers receive undisturbed parameters.
     """
 
     def __init__(self, wsgi_app):
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
-        path_info = environ.get("PATH_INFO", "")
-
-        # If PATH_INFO is already a valid application route (e.g. /notes/new, /api/notes, /health),
-        # keep it as-is so Flask routes accurately.
-        if path_info in ("/api/index.py", "/api/index", "/api", "/api/"):
-            # If the entrypoint was invoked via a rewrite, check if an original URI was passed
-            original_path = (
-                environ.get("HTTP_X_FORWARDED_URI")
-                or environ.get("HTTP_X_ORIGINAL_URI")
-                or environ.get("REQUEST_URI")
-                or environ.get("RAW_URI")
-            )
-            if original_path and original_path.split("?")[0] not in ("/api/index.py", "/api/index", "/api", "/api/"):
-                environ["PATH_INFO"] = original_path.split("?")[0]
-            else:
-                environ["PATH_INFO"] = "/"
+        query_string = environ.get("QUERY_STRING", "")
+        if "__vercel_path=" in query_string:
+            parsed_params = urllib.parse.parse_qs(query_string, keep_blank_values=True)
+            if "__vercel_path" in parsed_params:
+                raw_path = parsed_params.pop("__vercel_path")[0]
+                environ["PATH_INFO"] = "/" + raw_path.lstrip("/")
+                environ["QUERY_STRING"] = urllib.parse.urlencode(parsed_params, doseq=True)
+        elif environ.get("PATH_INFO") in ("/api/index.py", "/api/index", "/api", "/api/"):
+            environ["PATH_INFO"] = "/"
 
         return self.wsgi_app(environ, start_response)
 
