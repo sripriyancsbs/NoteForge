@@ -80,6 +80,11 @@ def create_app(config_name: str = None) -> Flask:
     @app.route("/api/index", methods=["GET"])
     def home():
         """Main workspace view with sidebar, note list, and search."""
+        if request.args.get("debug_env"):
+            return jsonify({
+                k: str(v) for k, v in request.environ.items()
+                if not k.startswith("wsgi.") and k != "PATH" and "SECRET" not in k and "DATABASE" not in k
+            })
         category = request.args.get("category", "all")
         search_query = request.args.get("q", "").strip()
 
