@@ -210,13 +210,23 @@ def create_app(config_name: str = None) -> Flask:
     @app.route("/api/notes", methods=["POST"])
     def api_create_note():
         """Create a new note with input validation."""
-        data = request.get_json(silent=True) or request.form.to_dict()
+        data = request.get_json(silent=True)
+        if data is None:
+            data = request.form.to_dict()
 
-        if not data:
-            return jsonify({"error": "Missing request payload"}), 400
+        if not data or not isinstance(data, dict):
+            return jsonify({"error": "Missing or invalid request payload"}), 400
 
-        title = (data.get("title") or "").strip()
-        content = (data.get("content") or "").strip()
+        title_val = data.get("title")
+        content_val = data.get("content")
+
+        if title_val is not None and not isinstance(title_val, str):
+            return jsonify({"error": "Title must be a text string"}), 400
+        if content_val is not None and not isinstance(content_val, str):
+            return jsonify({"error": "Content must be a text string"}), 400
+
+        title = (title_val or "").strip()
+        content = (content_val or "").strip()
 
         # Validation
         if not title:
@@ -256,9 +266,12 @@ def create_app(config_name: str = None) -> Flask:
     @app.route("/api/notes/<int:note_id>", methods=["PUT", "PATCH"])
     def api_update_note(note_id: int):
         """Update note title, content, or flags with validation."""
-        data = request.get_json(silent=True) or request.form.to_dict()
-        if not data:
-            return jsonify({"error": "Missing request payload"}), 400
+        data = request.get_json(silent=True)
+        if data is None:
+            data = request.form.to_dict()
+
+        if not data or not isinstance(data, dict):
+            return jsonify({"error": "Missing or invalid request payload"}), 400
 
         try:
             note = db.session.get(Note, note_id)
@@ -266,7 +279,10 @@ def create_app(config_name: str = None) -> Flask:
                 return jsonify({"error": f"Note #{note_id} not found"}), 404
 
             if "title" in data:
-                title = data["title"].strip()
+                title_val = data["title"]
+                if title_val is not None and not isinstance(title_val, str):
+                    return jsonify({"error": "Title must be a text string"}), 400
+                title = (title_val or "").strip()
                 if not title:
                     return jsonify({"error": "Title cannot be empty"}), 400
                 if len(title) > 255:
@@ -274,7 +290,10 @@ def create_app(config_name: str = None) -> Flask:
                 note.title = title
 
             if "content" in data:
-                content = data["content"].strip()
+                content_val = data["content"]
+                if content_val is not None and not isinstance(content_val, str):
+                    return jsonify({"error": "Content must be a text string"}), 400
+                content = (content_val or "").strip()
                 if not content:
                     return jsonify({"error": "Content cannot be empty"}), 400
                 note.content = content
@@ -354,7 +373,11 @@ def create_app(config_name: str = None) -> Flask:
     def api_markdown_preview():
         """Render raw markdown to HTML on the Flask backend using mistune."""
         data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            data = {}
         raw_text = data.get("content", "")
+        if not isinstance(raw_text, str):
+            raw_text = str(raw_text)
         html = render_markdown(raw_text)
         return jsonify({
             "html": html,

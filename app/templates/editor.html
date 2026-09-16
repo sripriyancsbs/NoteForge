@@ -30,6 +30,7 @@ Edit: {{ note.title }} — NOTEForge
         data-testid="note-title-editor"
         class="editor-title-input" 
         placeholder="Note Title..." 
+        aria-label="Note Title"
         value="{{ note.title if note else '' }}"
         data-note-id="{{ note.id if note else '' }}"
         autocomplete="off"
@@ -41,7 +42,7 @@ Edit: {{ note.title }} — NOTEForge
       <a href="{% if not is_new and note %}/notes/{{ note.id }}{% else %}/{% endif %}" class="btn btn-secondary" id="btn-cancel-editor" data-testid="cancel-editor-btn">
         Cancel
       </a>
-      <button type="button" class="btn btn-primary" id="btn-save-note" data-testid="save-note-btn" title="Save Note (Ctrl+S)">
+      <button type="button" class="btn btn-primary" id="btn-save-note" data-testid="save-note-btn" aria-keyshortcuts="Control+s" title="Save Note (Ctrl+S)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
           <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -102,6 +103,7 @@ Edit: {{ note.title }} — NOTEForge
       <textarea 
         id="note-content-editor" 
         data-testid="note-content-editor"
+        aria-label="Note Markdown Content"
         class="editor-textarea" 
         placeholder="Write your note in Markdown...
 # Heading

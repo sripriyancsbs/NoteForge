@@ -373,3 +373,91 @@ def test_vercel_entrypoint_routing(app):
     # Direct access to /api/notes should work
     res = v_client.get("/api/notes")
     assert res.status_code == 200
+
+
+# -----------------------------------------------------------------------------
+# 11. Security-Style & Robustness Payloads Tests
+# -----------------------------------------------------------------------------
+def test_create_note_invalid_field_types(client):
+    """Test validation fails when title or content are invalid types."""
+    # Integer title
+    res1 = client.post("/api/notes", json={"title": 12345, "content": "Valid content"})
+    assert res1.status_code == 400
+    assert "text string" in res1.get_json()["error"].lower()
+
+    # Array content
+    res2 = client.post("/api/notes", json={"title": "Valid title", "content": ["list", "of", "items"]})
+    assert res2.status_code == 400
+    assert "text string" in res2.get_json()["error"].lower()
+
+    # Non-dict payload (JSON array)
+    res3 = client.post("/api/notes", json=[1, 2, 3])
+    assert res3.status_code == 400
+    assert "payload" in res3.get_json()["error"].lower()
+
+
+def test_edit_note_invalid_field_types(client, sample_note):
+    """Test updating with invalid field types fails validation cleanly."""
+    res = client.put(f"/api/notes/{sample_note['id']}", json={"title": {"nested": "dict"}})
+    assert res.status_code == 400
+    assert "text string" in res.get_json()["error"].lower()
+
+
+def test_security_payload_xss_prevention(client):
+    """Verify script injection payloads are properly escaped and not executable HTML."""
+    xss_payload = {
+        "title": "XSS Test Payload",
+        "content": "<script>alert('test')</script>\n<img src=x onerror=alert(1)>"
+    }
+    res = client.post("/api/notes", json=xss_payload)
+    assert res.status_code == 201
+    html = res.get_json()["rendered_html"]
+    # Verify script tag is HTML-escaped by mistune, not raw executable tag
+    assert "<script>" not in html
+    assert "&lt;script&gt;" in html
+
+
+def test_security_payload_sql_injection_resilience(client):
+    """Verify SQL injection strings are safely parameterized and treated as literal text."""
+    sqli_title = "' OR '1'='1"
+    sqli_content = "Normal content; DROP TABLE notes; --"
+    res = client.post("/api/notes", json={"title": sqli_title, "content": sqli_content})
+    assert res.status_code == 201
+    note_id = res.get_json()["id"]
+
+    # Search for the literal SQL string
+    search_res = client.get("/api/notes?q=' OR '1'='1")
+    assert search_res.status_code == 200
+    results = search_res.get_json()
+    assert any(n["id"] == note_id for n in results)
+
+
+def test_security_payload_path_traversal_and_special_chars(client):
+    """Verify path traversal and special characters are handled safely."""
+    payload = {
+        "title": "Path and Symbols: ../../test & < > \" ' %",
+        "content": "Testing literal handling of ../../test and special characters: < > \" ' & %"
+    }
+    res = client.post("/api/notes", json=payload)
+    assert res.status_code == 201
+    data = res.get_json()
+    assert "../../test" in data["title"]
+    assert "&amp;" in data["rendered_html"] or "&" in data["content"]
+
+
+def test_security_payload_unicode_preservation(client):
+    """Verify Unicode multilingual and emoji characters persist and render accurately."""
+    unicode_title = "Multilingual Note: こんにちは 你好 🚀"
+    unicode_content = "Line 1: こんにちは (Japanese)\nLine 2: 你好 (Chinese)\nLine 3: 🚀 Rocket Launch"
+    res = client.post("/api/notes", json={"title": unicode_title, "content": unicode_content})
+    assert res.status_code == 201
+    data = res.get_json()
+    assert "こんにちは" in data["title"]
+    assert "🚀" in data["title"]
+    assert "你好" in data["content"]
+
+    # Verify retrieval
+    get_res = client.get(f"/api/notes/{data['id']}")
+    assert get_res.status_code == 200
+    assert "こんにちは" in get_res.get_json()["title"]
+    assert "🚀" in get_res.get_json()["rendered_html"]

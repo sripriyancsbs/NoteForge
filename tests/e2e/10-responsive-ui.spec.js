@@ -4,9 +4,12 @@ const { deleteTestNote } = require('./helpers');
 
 test.describe('TEST SUITE 10 — RESPONSIVE UI', () => {
   const VIEWPORTS = [
-    { name: 'desktop', width: 1280, height: 800 },
-    { name: 'tablet', width: 768, height: 1024 },
-    { name: 'mobile', width: 375, height: 667 },
+    { name: 'desktop-1280', width: 1280, height: 800 },
+    { name: 'tablet-768', width: 768, height: 1024 },
+    { name: 'mobile-412', width: 412, height: 915 },
+    { name: 'mobile-390', width: 390, height: 844 },
+    { name: 'mobile-375', width: 375, height: 667 },
+    { name: 'mobile-320', width: 320, height: 568 },
   ];
 
   for (const vp of VIEWPORTS) {

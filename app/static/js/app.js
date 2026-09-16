@@ -10,6 +10,7 @@
   'use strict';
 
   // State
+  let isSaving = false;
   let previewDebounceTimer = null;
   let activeDeleteId = null;
   let activeDeleteIsPermanent = false;
@@ -206,6 +207,7 @@
     if (event && typeof event.preventDefault === 'function') {
       event.preventDefault();
     }
+    if (isSaving) return;
     if (!noteTitleInput || !markdownTextarea) return;
 
     const title = noteTitleInput.value.trim();
@@ -224,6 +226,13 @@
       return;
     }
 
+    if (title.length > 255) {
+      showToast('Title cannot exceed 255 characters', 'error');
+      noteTitleInput.focus();
+      return;
+    }
+
+    isSaving = true;
     if (saveBtn) {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving...';
@@ -251,6 +260,7 @@
         }, 250);
       })
       .catch(err => {
+        isSaving = false;
         console.error('Save error:', err);
         showToast(err.message || 'Failed to save note', 'error');
         if (saveBtn) {

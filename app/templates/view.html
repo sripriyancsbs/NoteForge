@@ -55,6 +55,7 @@
         type="button" 
         class="btn btn-secondary" 
         id="btn-view-restore" 
+        data-testid="view-restore-btn"
         onclick="window.restoreNote({{ note.id }}, event)"
       >
         Restore
@@ -63,6 +64,7 @@
         type="button" 
         class="btn btn-danger" 
         id="btn-view-delete-perm" 
+        data-testid="view-delete-perm-btn"
         onclick="window.promptDeleteNote({{ note.id }}, true)"
       >
         Delete Permanently
